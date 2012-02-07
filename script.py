@@ -16,12 +16,12 @@ author: Matteo Romanello, <matteo.romanello@kcl.ac.uk>
 global input_file
 input_file = "bios.txt"
 
-def do_lookup(seed):
+def do_lookup(seed,query_limit = 5):
 	"""
 	Do a DBPedia lookup via its API.
 	"""
 	results = []
-	lookup_url = "http://lookup.dbpedia.org/api/search.asmx/KeywordSearch?QueryString=%s"%seed
+	lookup_url = "http://lookup.dbpedia.org/api/search.asmx/KeywordSearch?QueryString=%s&MaxHits=%i"%(seed,query_limit)
 	return get(lookup_url)
 	
 def format_perseus_uri(i_string):
@@ -36,7 +36,10 @@ def get(uri):
 	Retrieves the URI and returns its content as a string
 	"""
 	print "...fetching  <%s>"%uri
-	return  urllib.urlopen(uri).read()
+	handle = urllib.urlopen(uri)
+	result = handle.read()
+	handle.close()
+	return result
 
 def transform_tei(tei_input):
 	"""
@@ -101,10 +104,10 @@ try:
             names = set(parse_xml(temp)["names"])
             desc = parse_xml(temp)["desc"]
             for n in names:
-                for t in n.split():
-                    res= do_lookup(t)
-                    print parse_lookup_reply(res)
-                    print desc
+                #for t in n.split():
+                res= do_lookup(n)
+                print parse_lookup_reply(res)
+                print desc
         else:
             break
 	
