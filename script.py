@@ -2,6 +2,7 @@ import urllib
 import random
 from xml.etree.ElementTree import ElementTree,fromstring
 from lxml import etree
+from nltk.corpus import stopwords
 try:
 	from gensim import corpora, models, similarities
 except ImportError:
@@ -23,7 +24,7 @@ def do_lookup(seed,query_limit = 5):
 	results = []
 	lookup_url = "http://lookup.dbpedia.org/api/search.asmx/KeywordSearch?QueryString=%s&MaxHits=%i"%(seed,query_limit)
 	return get(lookup_url)
-	
+
 def format_perseus_uri(i_string):
 	"""
 	Given an input ID, creates a URI compliant with the scheme defined by Perseus
@@ -37,7 +38,12 @@ def get(uri):
 	"""
 	print "...fetching  <%s>"%uri
 	handle = urllib.urlopen(uri)
-	result = handle.read()
+	result = ''
+	while (1):
+		next = handle.read()
+		if not next: 
+			break
+		result += next
 	handle.close()
 	return result
 
@@ -52,8 +58,11 @@ def transform_tei(tei_input):
 	doc = etree.XML(tei_input)
 	dumb_xml = transform(doc)
 	return dumb_xml
-	
+
 def parse_lookup_reply(xml):
+	"""
+	TBD
+	"""
 	results = []
 	result = {"label":None,"uri":None,"desc":None,}
 	doc = etree.XML(xml)
@@ -81,35 +90,72 @@ def parse_xml(etree_input):
 		else:
 			res["desc"] = item.text
 	return res
-	
+
+def suggest_matching(docs,query):
+	# stopword list comes from NLTK
+	# we might want to consider removing pucntuation
+	stoplist = stopwords.words('english')
+	texts = [[word for word in document.lower().split() if word not in stoplist] for document in docs]
+	all_tokens = sum(texts, [])
+	tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
+	texts = [[word for word in text if word not in tokens_once] for text in texts]
+	dictionary = corpora.Dictionary(texts)
+	dictionary.save('test.dict')
+	#print dictionary
+	#print dictionary.token2id
+	corpus = [dictionary.doc2bow(text) for text in texts]
+	#print corpus
+	lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=2)
+	index = similarities.MatrixSimilarity(lsi[corpus]) # transform corpus to LSI space and index it
+	vec_bow = dictionary.doc2bow(query.lower().split())
+	vec_lsi = lsi[vec_bow] # convert the query to LSI space
+	sims = index[vec_lsi] # perform a similarity query against the corpus
+	sims = sorted(enumerate(sims), key=lambda item: -item[1])
+	#print list(enumerate(sims))
+	print "Highest ranked: \"%s\" with LSI value %s"%(docs[sims[0][0]],str(sims[0][1]))
+	return docs[sims[0][0]]
 try:
-    f = open(input_file,"r")
-    data = f.read().split("\n")
-    random.shuffle(data)
-    f.close()
-    print "There are %i Smith IDs in the input list..."%len(data)
-    
-    for n in range(len(data)):
-        if(n<10):
-            print "\n##### %s #####"%data[n]
-            test_url = format_perseus_uri(data[n])
-            xml = get(test_url)
-            #print parse_xml(xml)
-            """
-            file = open("%s.xml"%data[n],"w")
-            file.write(xml)
-            file.close()
-            """
-            temp = transform_tei(xml)
-            names = set(parse_xml(temp)["names"])
-            desc = parse_xml(temp)["desc"]
-            for n in names:
-                #for t in n.split():
-                res= do_lookup(n)
-                print parse_lookup_reply(res)
-                print desc
-        else:
-            break
-	
+	f = open(input_file,"r")
+	data = f.read().split("\n")
+	random.shuffle(data)
+	f.close()
+	print "There are %i Smith IDs in the input list..."%len(data)
+
+	for n in range(len(data)):
+		if(n<5):
+			print "\n##### %s #####"%data[n]
+			test_url = format_perseus_uri(data[n])
+			xml = get(test_url)
+			#print parse_xml(xml)
+			"""
+			file = open("%s.xml"%data[n],"w")
+			file.write(xml)
+			file.close()
+			"""
+			temp = transform_tei(xml)
+			names = set(parse_xml(temp)["names"])
+			desc = parse_xml(temp)["desc"]
+			for n in names:
+				#for t in n.split():
+				max_res = 10
+				lookup_results = parse_lookup_reply(do_lookup(n,max_res))
+				while(len(lookup_results) == max_res):
+					#do stuff
+					# need to add a breaking condition
+					lookup_results = parse_lookup_reply(do_lookup(n,max_res*max_res))
+					
+				documents = [r["desc"] for r in lookup_results if r["desc"] is not None]
+				print desc
+				print documents
+				"""
+				handle the fact that, when the number of lookup results is equal to the number
+				of max query results, we should increase the latter and get more lookup results
+				"""
+				if(len(documents)>1):
+					print "\n## Smith entry: %s"%desc
+					print "\n## Suggested matching: %s"%suggest_matching(documents,query=desc)
+		else:
+			break
+			
 except IOError:
     print "this time didn't work"
