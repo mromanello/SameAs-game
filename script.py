@@ -15,7 +15,7 @@ author: Matteo Romanello, <matteo.romanello@kcl.ac.uk>
 """
 
 global input_file
-input_file = "bios.txt"
+input_file = "zbios.txt"
 
 def do_lookup(seed,query_limit = 5):
 	"""
@@ -92,19 +92,25 @@ def parse_xml(etree_input):
 	return res
 
 def suggest_matching(docs,query):
+	"""
+	The idea is to suggest the document among docs which is most matching the query (query).
+	The suggestion is based on gensim's implementation of Latent Semantic Indexing, with tfidf as similarity measure.
+	"""
 	# stopword list comes from NLTK
 	# we might want to consider removing pucntuation
 	stoplist = stopwords.words('english')
 	texts = [[word for word in document.lower().split() if word not in stoplist] for document in docs]
-	all_tokens = sum(texts, [])
-	tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
-	texts = [[word for word in text if word not in tokens_once] for text in texts]
+	#all_tokens = sum(texts, [])
+	#tokens_once = set(word for word in set(all_tokens) if all_tokens.count(word) == 1)
+	#texts = [[word for word in text if word not in tokens_once] for text in texts]
 	dictionary = corpora.Dictionary(texts)
 	dictionary.save('test.dict')
 	#print dictionary
 	#print dictionary.token2id
 	corpus = [dictionary.doc2bow(text) for text in texts]
 	#print corpus
+	
+	"""
 	lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=2)
 	index = similarities.MatrixSimilarity(lsi[corpus]) # transform corpus to LSI space and index it
 	vec_bow = dictionary.doc2bow(query.lower().split())
@@ -112,7 +118,17 @@ def suggest_matching(docs,query):
 	sims = index[vec_lsi] # perform a similarity query against the corpus
 	sims = sorted(enumerate(sims), key=lambda item: -item[1])
 	#print list(enumerate(sims))
-	print "Highest ranked: \"%s\" with LSI value %s"%(docs[sims[0][0]],str(sims[0][1]))
+	print "Highest ranked (LSI): \"%s\" with LSI value %s"%(docs[sims[0][0]],str(sims[0][1]))
+	"""
+	
+	tfidf = models.TfidfModel(corpus)
+	index = similarities.SparseMatrixSimilarity(tfidf[corpus])
+	vec_bow = dictionary.doc2bow(query.lower().split())
+	vec_tfidf = tfidf[vec_bow] # convert the query to TFIDF space
+	sims = index[vec_tfidf] # perform a similarity query against the corpus
+	sims = sorted(enumerate(sims), key=lambda item: -item[1])
+	#print list(enumerate(sims))
+	print "Highest ranked (TFIDF): \"%s\" with TFIDF value %s"%(docs[sims[0][0]],str(sims[0][1]))
 	return docs[sims[0][0]]
 try:
 	f = open(input_file,"r")
@@ -146,14 +162,15 @@ try:
 					
 				documents = [r["desc"] for r in lookup_results if r["desc"] is not None]
 				print desc
-				print documents
+				#print documents
 				"""
 				handle the fact that, when the number of lookup results is equal to the number
 				of max query results, we should increase the latter and get more lookup results
 				"""
-				if(len(documents)>1):
-					print "\n## Smith entry: %s"%desc
-					print "\n## Suggested matching: %s"%suggest_matching(documents,query=desc)
+				if(len(documents)>=1):
+					suggest_matching(documents,query=desc)
+				#	print "\n## Smith entry: %s"%desc
+				#	print "\n## Suggested matching: %s"%suggest_matching(documents,query=desc)
 		else:
 			break
 			
