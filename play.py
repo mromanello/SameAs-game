@@ -4,6 +4,11 @@ import argparse
 import random
 from xml.etree.ElementTree import ElementTree,fromstring
 from lxml import etree
+try:
+	from clint.textui import puts, colored
+	from clint.textui import columns
+except ImportError:
+	print "clint library not found: try sudo easy_install clint"
 from nltk.corpus import stopwords # NLTK is needed for the English stopword list
 try:
 	from gensim import corpora, models, similarities # gensim provides an handy implementation of, among other things, LSI and topic models
@@ -192,15 +197,15 @@ def match_entity(id):
 			for n,r in enumerate(results):
 				logger.debug("##%i## (%s) %s"%(n,r[1],r[0]))
 			
-			print "\n%s\n"%desc
-			print "Highest ranked (TFIDF): \"%s\" with TFIDF value %s\n"%(results[0][0][1],results[0][1])
+			puts(columns([colored.green("\n%s\n"%desc.encode("utf-8")),60],
+			[colored.magenta("Highest ranked (TFIDF): \"%s\" with TFIDF value %s\n"%(results[0][0][1],results[0][1].encode("utf-8"))),None]))
 			print "%s sameAs %s?\n"%(test_url,results[0][2])
 			return True
 		elif(len(documents)==1):
 			""
 			""
-			print "\n%s\n"%desc
-			print "\n%s\n"%documents[0][1]
+			puts(columns([colored.green("\n%s\n"%desc.encode("utf-8")),60],
+			[colored.magenta("\n%s\n"%documents[0][1].encode("utf-8")),None]))
 			print "%s sameAs %s?\n"%(test_url,documents[0][0])
 			return True
 		else:
@@ -254,7 +259,8 @@ def main():
 						want_continue = False
 				else:
 					print "Keep going!"
-			except:
+			except Exception as inst:
+				print inst
 				print "There was a problem. Trying with the next one."
 	
 	# initialise the logger
