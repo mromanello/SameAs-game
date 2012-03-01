@@ -42,7 +42,9 @@ def format_perseus_uri(i_string):
 
 def get(uri):
 	"""
-	Retrieves the URI and returns its content as a string
+	Retrieves the URI and returns its content as a string.
+	Args:
+		uri: the URI to retrieve
 	"""
 	logger.info("fetching resource <%s>"%uri)
 	handle = urllib.urlopen(uri)
@@ -58,7 +60,8 @@ def get(uri):
 def transform_tei(tei_input):
 	"""
 	Get information from the TEI by applying an XSLT transformation.
-	Parse the TEI/XML and keep just the information that is relevant in this context (= automatic  salignment of Perseus' URIs with DBPedia's).
+	Parse the TEI/XML and keep just the information that is relevant in this context 
+	(= for the automatic  alignment of Perseus' URIs with DBPedia's).
 	"""
 	dumb_xml = ""
 	xslt_root  = etree.parse("transform.xsl")
@@ -69,7 +72,11 @@ def transform_tei(tei_input):
 
 def parse_lookup_reply(xml):
 	"""
-	TBD
+	Parse the response of the DBpedia lookup service.
+	Args:
+		xml: the xml string containing the lookup result
+	Returns:
+		a dictionary, of the kind d = {"label":"...","uri":"...",desc":...","label":"..."}
 	"""
 	results = []
 	result = {"label":None,"uri":None,"desc":None,}
@@ -86,7 +93,10 @@ def parse_lookup_reply(xml):
 
 def parse_xml(etree_input):
 	"""
-	TBD
+	Args:
+		etree_input: is the output of the function transform_tei(...)
+	Returns:
+		A dictionary of the kind res = {"names":[],"desc":"..."}
 	"""
 	res = {"names":[],"desc":None}
 	names = etree_input.findall(".//name")
@@ -132,7 +142,7 @@ def suggest_matching(docs,query):
 
 def init_logger(verbose=False, log_file=None):
 	"""
-	Initialise a logger.
+	Initialises a logger.
 	"""
 	import logging
 	l_logger = logging.getLogger("script")
@@ -170,6 +180,9 @@ def run(limit=5):
 	    print "this time didn't work"
 
 def match_entity(id):
+	"""
+	Tries to match a Perseus-Smith entity against a DBpedia entry.
+	"""
 	logger.debug("%s"%id)
 	test_url = format_perseus_uri(id)
 	xml = get(test_url)
@@ -230,6 +243,9 @@ def get_input(input_file = "zbios.txt"):
 	return
 
 def main():
+	"""
+	Run the whole thing.
+	"""
 	parser = argparse.ArgumentParser(prog="script.py",description='Match Perseus\' Smith URIs against DBpedia URIs.') # initialise the argument parser
 	parser.add_argument('--id', action="store", dest="id", type=str,default=None)
 	parser.add_argument('--verbose','-v',action='store_true', default=False,help='Logs DEBUG information (default is INFO level)')
