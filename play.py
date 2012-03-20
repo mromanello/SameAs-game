@@ -204,22 +204,24 @@ def match_entity(id):
 		if(len(documents)>1):
 			"""
 			there is > 1 result from dbpedia.
-			will try to disambiguate using TFIDF-based LSI
+			will try to disambiguate using TFIDF model
 			"""
 			results = suggest_matching(documents,query=desc)
 			for n,r in enumerate(results):
 				logger.debug("##%i## (%s) %s"%(n,r[1],r[0]))
 			
-			puts(columns([colored.green("\n%s\n"%desc.encode("utf-8")),60],
-			[colored.magenta("Highest ranked (TFIDF): \"%s\" with TFIDF value %s\n"%(results[0][0][1],results[0][1].encode("utf-8"))),None]))
-			print "%s sameAs %s?\n"%(test_url,results[0][2])
+			puts(columns([colored.green("[SMITH DICTIONARY ENTRY]\n%s\n"%desc.encode("utf-8")),60],
+			[colored.magenta("[DBPEDIA 1st CANDIDATE] (TFIDF score: %s)\n\"%s\"\n"%(results[0][1].encode("utf-8"),results[0][0][1])),None]))
+			puts(colored.cyan("Is \"%s\" the sameAs \"%s\"?\n"%(test_url,results[0][0][0])))
+			answer = raw_input("[Yy/Nn]: ")
 			return True
 		elif(len(documents)==1):
 			""
 			""
-			puts(columns([colored.green("\n%s\n"%desc.encode("utf-8")),60],
-			[colored.magenta("\n%s\n"%documents[0][1].encode("utf-8")),None]))
-			print "%s sameAs %s?\n"%(test_url,documents[0][0])
+			puts(columns([colored.green("[SMITH DICTIONARY ENTRY]\n%s\n"%desc.encode("utf-8")),60],
+			[colored.magenta("[DBPEDIA 1st CANDIDATE]\n%s\n"%documents[0][1].encode("utf-8")),None]))
+			puts(colored.cyan("Is \"%s\" the sameAs \"%s\"?\n"%(test_url,documents[0][0])))
+			answer = raw_input("[Yy/Nn]: ")
 			return True
 		else:
 			print "No results from the DBpedia query"

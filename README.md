@@ -23,6 +23,8 @@ In this case try
 or
 
     python play.py --id sosicles-1
+
+![screenshot](http://dl.dropbox.com/u/1015658/sosicles-1_2.png)
 	
 
 There are cases where the wikipedia entry is taken (almost) entirely from the Smith's entry from Perseus (as a result, the LSI score is 1 or close to 1).
@@ -31,6 +33,10 @@ Some interesting examples:
 
     python play.py --id albinus-24
     python play.py --id lysianassa-1
+    python play.py --id fannia-2
+    python play.py --id nicanor-saevius-1
+
+![screenshot](http://dl.dropbox.com/u/1015658/serena-1.png)
 
 ## TODO ##
 
